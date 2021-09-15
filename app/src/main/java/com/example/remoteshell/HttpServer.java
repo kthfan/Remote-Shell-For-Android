@@ -402,6 +402,7 @@ public abstract class HttpServer {
 	private Map<String, Map<String, String>> sessionMap = new HashMap<String, Map<String, String>>();
 	private Set<String> sessionIdSet = new HashSet<String>();
 	private boolean keepRunning = true;
+	private List<ServerSocketChannel> serverSocketChannelList = new ArrayList<ServerSocketChannel>();;
 	
 	HttpServer(){
 		this.ports = new HashSet<Integer>(Arrays.asList(80));
@@ -522,19 +523,21 @@ public abstract class HttpServer {
 	public void start() throws IOException {
 		InetAddress host = InetAddress.getByName(null);
 		Selector selector = Selector.open();
-		List<ServerSocketChannel> serverSocketChannelList = new ArrayList<ServerSocketChannel>();
+		this.serverSocketChannelList = new ArrayList<ServerSocketChannel>();
 		for (int port : this.ports) {
 			ServerSocketChannel serverSocketChannel = ServerSocketChannel.open();
 			serverSocketChannel.configureBlocking(false);
 			serverSocketChannel.bind(new InetSocketAddress(host, port));
+			serverSocketChannel.socket().setReuseAddress(true);
 			serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
-			serverSocketChannelList.add(serverSocketChannel);
+
+			this.serverSocketChannelList.add(serverSocketChannel);
 		}
 		SelectionKey key = null;
 		this.keepRunning = true;
 		System.out.println("Server running...");
 		while (this.keepRunning) {
-			if (selector.select() <= 0)
+			if (selector.select(5000) <= 0)
 				continue;
 			Set<SelectionKey> selectedKeys = selector.selectedKeys();
 			Iterator<SelectionKey> iterator = selectedKeys.iterator();
@@ -573,16 +576,18 @@ public abstract class HttpServer {
 	            }
 			}
 		}
-		serverSocketChannelList.forEach(ssc -> {
+		System.out.println("Server exited.");
+	}
+	public void close() {
+		if(!this.keepRunning) return;
+		this.keepRunning = false;
+		this.serverSocketChannelList.forEach(ssc -> {
 			try {
 				ssc.close();
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
 		});
-	}
-	public void close() {
-		this.keepRunning = false;
 	}
 }
 

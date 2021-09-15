@@ -75,6 +75,7 @@ open class BackgroundService : Service() {
     }
 
     fun runServer(workingDir:String, allowedHost:Collection<String>, ports:Collection<Int>) {
+        if(fileServer != null) return
         this.portToConnect = ports.firstOrNull()!!.toInt()
 
         fileServer = FileSystemServer(workingDir, null,  allowedHost + Arrays.asList("localhost:" + this.testServerPort),  ports)
@@ -90,6 +91,7 @@ open class BackgroundService : Service() {
 
     }
     fun runTestServer(){
+        if(testServer != null) return
         Thread{
             this.testServer = object:HttpServer(Arrays.asList(this.testServerPort)){
                 override fun onRequest(request: Request?, response: Response?, socket: Socket?) {
@@ -103,10 +105,12 @@ open class BackgroundService : Service() {
     }
 
     fun stopTestServer(){
-        testServer!!.close()
+        testServer?.close()
+        testServer = null
     }
     fun stopServer(){
-        fileServer!!.close()
+        fileServer?.close()
+        fileServer = null
     }
 
     fun registerClient(activity: Activity){

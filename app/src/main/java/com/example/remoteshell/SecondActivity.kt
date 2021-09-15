@@ -43,8 +43,8 @@ class SecondActivity : AppCompatActivity() , BackgroundService.Callbacks {
             serviceInstance = binder.getService() //Get instance of your service!
             serviceInstance!!.registerClient(this@SecondActivity) //Activity register in the service as client for callabcks!
             try{
-                askForPermission()
-                serviceInstance!!.runServer(workingDir, Arrays.asList("127.0.0.1", "localhost", allowedHostEdit.text.toString()), Arrays.asList(portEdit.text.toString().toInt()))
+
+                if(askForPermission()) serviceInstance!!.runServer(workingDir, Arrays.asList("127.0.0.1", "localhost", allowedHostEdit.text.toString()), Arrays.asList(portEdit.text.toString().toInt()))
             }catch (e : AccessControlException){
                 Toast.makeText(this@SecondActivity, "Working directory access denied.", Toast.LENGTH_LONG).show()
             }
@@ -66,23 +66,26 @@ class SecondActivity : AppCompatActivity() , BackgroundService.Callbacks {
 
     }
 
-    fun askForPermission(){
-        if(ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE
-            ) != PackageManager.PERMISSION_GRANTED ){
+    fun askForPermission(): Boolean{
+        var writable = ContextCompat.checkSelfPermission(
+            this,
+            Manifest.permission.WRITE_EXTERNAL_STORAGE
+        ) == PackageManager.PERMISSION_GRANTED;
+        var readable = ContextCompat.checkSelfPermission(
+            this,
+            Manifest.permission.READ_EXTERNAL_STORAGE
+        ) == PackageManager.PERMISSION_GRANTED;
+        if( !writable){
             requestPermissions(
                 arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE),
                 1)
         }
-        if(ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.READ_EXTERNAL_STORAGE
-            ) != PackageManager.PERMISSION_GRANTED ){
+        if(!readable){
             requestPermissions(
                 arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE),
                 1)
         }
+        return writable && readable
     }
 
     fun onStartClick(view : View){
@@ -91,7 +94,7 @@ class SecondActivity : AppCompatActivity() , BackgroundService.Callbacks {
         bindService(serviceIntent, mConnection, Context.BIND_AUTO_CREATE); //Binding to the service!
     }
     fun onTestClick(view : View){
-        if(serviceInstance == null){
+        if(serviceInstance == null || serviceInstance?.fileServer == null){
             Toast.makeText(this, "Please start server first.", Toast.LENGTH_LONG).show()
             return
         }
@@ -103,8 +106,11 @@ class SecondActivity : AppCompatActivity() , BackgroundService.Callbacks {
     }
 
     fun onStopClick(view : View){
-        serviceInstance!!.stopServer()
-        serviceInstance!!.stopTestServer()
+        if(serviceInstance != null){
+            serviceInstance!!.stopServer()
+            serviceInstance!!.stopTestServer()
+        }else Toast.makeText(this@SecondActivity, "Server not open yet.", Toast.LENGTH_LONG).show()
+
         try{
             unbindService(mConnection);
             stopService(serviceIntent);
