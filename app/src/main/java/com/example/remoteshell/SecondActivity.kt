@@ -43,8 +43,7 @@ class SecondActivity : AppCompatActivity() , BackgroundService.Callbacks {
             serviceInstance = binder.getService() //Get instance of your service!
             serviceInstance!!.registerClient(this@SecondActivity) //Activity register in the service as client for callabcks!
             try{
-
-                if(askForPermission()) serviceInstance!!.runServer(workingDir, Arrays.asList("127.0.0.1", "localhost", allowedHostEdit.text.toString()), Arrays.asList(portEdit.text.toString().toInt()))
+                serviceInstance!!.runServer(workingDir, Arrays.asList("127.0.0.1", "localhost", allowedHostEdit.text.toString()), Arrays.asList(portEdit.text.toString().toInt()))
             }catch (e : AccessControlException){
                 Toast.makeText(this@SecondActivity, "Working directory access denied.", Toast.LENGTH_LONG).show()
             }
@@ -89,6 +88,7 @@ class SecondActivity : AppCompatActivity() , BackgroundService.Callbacks {
     }
 
     fun onStartClick(view : View){
+        if(!askForPermission()) return
         serviceIntent = Intent(this, BackgroundService::class.java)
         startService(serviceIntent)
         bindService(serviceIntent, mConnection, Context.BIND_AUTO_CREATE); //Binding to the service!
